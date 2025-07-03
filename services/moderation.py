@@ -69,7 +69,6 @@ class NSFWModerator(object):
                 logger.info(
                     "Request for nsfw moderation %s", moderation_request.id
                 )
-                logger.debug("Image: %s", moderation_request.image)
 
                 moderation_resp: ModerationResponse = (
                     await self.__api.moderate(moderation_request)
@@ -88,13 +87,17 @@ class NSFWModerator(object):
 
 async def launch_moderator():
     """Launch nsfw moderator."""
+    import logging.config
+
     from redis.asyncio import Redis
 
     from config.app import MODERATION_REQUESTS_QUEUE_KEY, Config, get_config
+    from config.log import get_log_config
 
     config: Config = get_config()
+    logging.config.dictConfig(get_log_config(config.debug))
 
-    async with Redis(config.redis.url) as redis:
+    async with Redis.from_url(config.redis.url) as redis:
         moderator = NSFWModerator(
             nsfw_client=ClarifaiClient(config=config.clarifai),
             request_consumer=ModerationRequestsConsumer(
