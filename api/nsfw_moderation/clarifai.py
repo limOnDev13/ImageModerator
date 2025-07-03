@@ -11,11 +11,14 @@ import httpx
 from httpx import Response
 
 from config.app import ClarifaiConfig
+from schemas.moderation import ModerationRequest, ModerationResponse
 
-logger = getLogger("main.ai.clarifai")
+from .base import NSFWClient
+
+logger = getLogger("main.api.clarifai")
 
 
-class ClarifaiClient(object):
+class ClarifaiClient(NSFWClient):
     """Clarifai client (REST API)."""
 
     BASE_URL: str = (
@@ -67,14 +70,17 @@ class ClarifaiClient(object):
         except ValueError:
             return False
 
-    async def moderate_nsfw(self, image: str) -> Dict[str, Any]:
+    async def moderate(
+        self, moderation_request: ModerationRequest
+    ) -> ModerationResponse:
         """
         Moderate nsfw.
 
-        :param image: Image URL or base64.
+        :param moderation_request: Moderation request object.
         :raise ValueError: If image is not url or base64.
         :return: JSON response from Clarifai API.
         """
+        image = moderation_request.image
         if self.__is_url(image):
             logger.debug("Image is URL")
             image_data: Dict[str, str] = {"url": image}
@@ -100,7 +106,12 @@ class ClarifaiClient(object):
                     str(resp.json()),
                 )
 
-            return resp.json()
+            resp_json: Dict[str, Any] = resp.json()
+            return ModerationResponse(
+                id=moderation_request.id,
+                sfw=resp_json["outputs"]["data"]["concepts"][0]["value"],
+                nsfw=resp_json["outputs"]["data"]["concepts"][1]["value"],
+            )
 
 
 if __name__ == "__main__":
@@ -111,9 +122,10 @@ if __name__ == "__main__":
 
     import asyncio
 
-    resp: Dict[str, Any] = asyncio.run(
-        client.moderate_nsfw("https://samples.clarifai.com/metro-north.jpg")
+    moderation_request = ModerationRequest(
+        image="https://samples.clarifai.com/metro-north.jpg"
     )
+    resp: ModerationResponse = asyncio.run(client.moderate(moderation_request))
     import json
 
     print(json.dumps(resp, indent=4))

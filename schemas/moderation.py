@@ -1,13 +1,16 @@
 """The module responsible for the schemes for moderation."""
 
-from pydantic import UUID4, BaseModel, Field
+from uuid import uuid4
+
+from pydantic import BaseModel, Field
 
 
 class ModerationRequest(BaseModel):
     """Moderation request schema."""
 
-    id: UUID4 = Field(
-        default_factory=UUID4, description="Moderation request ID"
+    id: str = Field(
+        default_factory=lambda: str(uuid4()),
+        description="Moderation request ID",
     )
     image: str = Field(..., description="Image URL or Base64")
 
@@ -15,8 +18,10 @@ class ModerationRequest(BaseModel):
 class ModerationResponse(BaseModel):
     """Moderation response schema."""
 
-    id: UUID4 = Field(
+    id: str = Field(
         ...,
         description="Moderation response ID. The moderation response ID."
         " Is equal to the ID of the corresponding moderation request.",
     )
+    sfw: float = Field(..., description="SFW coefficient.")
+    nsfw: float = Field(..., description="NSFW coefficient.")

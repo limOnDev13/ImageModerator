@@ -8,6 +8,7 @@ dependencies = [
     "httpx>=0.28.1",
     "pydantic>=2.11.7",
     "python-dotenv>=1.1.1",
+    "redis>=6.2.0",
 ]
 
 [dependency-groups]
@@ -39,5 +40,6 @@ skip_glob = [
 [tool.mypy]
 exclude = [
     ".venv",
+    "./utils/redis.py",
 ]
 ignore_missing_imports = true

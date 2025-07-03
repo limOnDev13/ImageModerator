@@ -15,11 +15,19 @@ class ClarifaiConfig(object):
 
 
 @dataclass
+class RedisConfig(object):
+    """Redis config."""
+
+    url: str
+
+
+@dataclass
 class Config(object):
     """App config."""
 
     debug: bool
     clarifai: ClarifaiConfig
+    redis: RedisConfig
 
 
 def get_config() -> Config:
@@ -35,4 +43,10 @@ def get_config() -> Config:
             access_token=os.getenv("CLARIFAI_ACCESS_TOKEN", "clarifai PAT"),
             model_url=os.getenv("CLARIFAI_MODEL_URL", "clarifai model url"),
         ),
+        redis=RedisConfig(
+            url=os.getenv("REDIS_URL", "redis://localhost:6379")
+        ),
     )
+
+
+MODERATION_REQUESTS_QUEUE_KEY: str = "moderation_requests"
