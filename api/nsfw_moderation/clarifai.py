@@ -1,6 +1,7 @@
 """The module responsible for the implementation of the Clarifai client."""
 
 import base64
+import json
 import re
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -80,38 +81,66 @@ class ClarifaiClient(NSFWClient):
         :raise ValueError: If image is not url or base64.
         :return: JSON response from Clarifai API.
         """
-        image = moderation_request.image
-        if self.__is_url(image):
-            logger.debug("Image is URL")
-            image_data: Dict[str, str] = {"url": image}
-        elif self.__is_base64(image):
-            logger.debug("Image is base64 encoded.")
-            image_data = {"base64": image}
-        else:
-            raise ValueError("Unrecognized image format.")
+        try:
+            image = moderation_request.image
+            if self.__is_url(image):
+                logger.debug("Image is URL")
+                image_data: Dict[str, str] = {"url": image}
+            elif self.__is_base64(image):
+                logger.debug("Image is base64 encoded.")
+                image_data = {"base64": image}
+            else:
+                raise ValueError("Unrecognized image format.")
 
-        async with self.__httpx_client() as client:
-            data: Dict[str, Any] = {
-                "inputs": [{"data": {"image": image_data}}]
-            }
-            resp: Response = await client.post(
-                url=self.BASE_URL,
-                headers=self.__headers,
-                json=data,
-            )
-            if resp.status_code != 200:
-                logger.warning(
-                    "Resp status: %d. Response: %s",
-                    resp.status_code,
-                    str(resp.json()),
+            async with self.__httpx_client() as client:
+                data: Dict[str, Any] = {
+                    "inputs": [{"data": {"image": image_data}}]
+                }
+                resp: Response = await client.post(
+                    url=self.BASE_URL,
+                    headers=self.__headers,
+                    json=data,
+                )
+                if resp.status_code != 200:
+                    logger.warning(
+                        "Resp status: %d. Response: %s",
+                        resp.status_code,
+                        str(resp.json()),
+                    )
+
+                resp_json: Dict[str, Any] = resp.json()
+                logger.debug(
+                    "Response json: %s", json.dumps(resp_json, indent=2)
                 )
 
-            resp_json: Dict[str, Any] = resp.json()
-            return ModerationResponse(
-                id=moderation_request.id,
-                sfw=resp_json["outputs"]["data"]["concepts"][0]["value"],
-                nsfw=resp_json["outputs"]["data"]["concepts"][1]["value"],
-            )
+                if resp_json["status"]["code"] == 10000:
+                    logger.info("Successful request to Clarifai")
+                    moderation_data = resp_json["outputs"][0]["data"][
+                        "concepts"
+                    ]
+                    if moderation_data[0]["name"] == "nsfw":
+                        nsfw = moderation_data[0]["value"]
+                        sfw = moderation_data[1]["value"]
+                    else:
+                        nsfw = moderation_data[1]["value"]
+                        sfw = moderation_data[0]["value"]
+                    return ModerationResponse(
+                        id=moderation_request.id,
+                        sfw=sfw,
+                        nsfw=nsfw,
+                    )
+                else:
+                    logger.warning(
+                        "Unsuccessful request to Clarifai. "
+                        "Error description: %s",
+                        resp_json["status"]["description"],
+                    )
+                    return ModerationResponse(
+                        id=moderation_request.id, status="ERROR"
+                    )
+        except Exception as exc:
+            logger.error("Unexpected error: %s", str(exc))
+            return ModerationResponse(id=moderation_request.id, status="ERROR")
 
 
 if __name__ == "__main__":
@@ -126,6 +155,5 @@ if __name__ == "__main__":
         image="https://samples.clarifai.com/metro-north.jpg"
     )
     resp: ModerationResponse = asyncio.run(client.moderate(moderation_request))
-    import json
 
     print(json.dumps(resp, indent=4))
