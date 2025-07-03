@@ -1,0 +1,19 @@
+services:
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    command: [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
+    restart: unless-stopped
+    volumes:
+      - ./data/redisdata_test:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    ulimits:
+      nofile:
+        soft: 200000
+        hard: 200000
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+          cpus: "1.0"
