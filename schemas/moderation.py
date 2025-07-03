@@ -1,5 +1,6 @@
 """The module responsible for the schemes for moderation."""
 
+from typing import Literal
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
@@ -23,5 +24,8 @@ class ModerationResponse(BaseModel):
         description="Moderation response ID. The moderation response ID."
         " Is equal to the ID of the corresponding moderation request.",
     )
-    sfw: float = Field(..., description="SFW coefficient.")
-    nsfw: float = Field(..., description="NSFW coefficient.")
+    sfw: float = Field(default=0.0, description="SFW coefficient.")
+    nsfw: float = Field(default=0.0, description="NSFW coefficient.")
+    status: Literal["OK", "ERROR"] = Field(
+        default="OK", description="Response status."
+    )
