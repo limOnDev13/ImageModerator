@@ -29,4 +29,6 @@ class ModerationRequestsProducer(RedisProdMixin):
 
     async def produce(self, moderation_request: ModerationRequest) -> None:
         """Produce moderation requests."""
-        await self.rpush(self.__queue_key, moderation_request.model_dump())
+        await self.rpush(
+            self.__queue_key, moderation_request.model_dump_json()
+        )
