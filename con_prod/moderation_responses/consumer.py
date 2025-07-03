@@ -25,7 +25,11 @@ class ModerationResponsesConsumer(RedisConMixin):
         """
         super().__init__(redis_client=redis_client, redis_url=redis_url)
 
-    async def consume(self, moderation_request_id) -> ModerationResponse:
+    async def consume(
+        self, moderation_request_id, timeout: Optional[float] = None
+    ) -> Optional[ModerationResponse]:
         """Consume moderation responses."""
-        request_str = await self.blpop(moderation_request_id)
-        return ModerationResponse.model_validate_json(request_str)
+        response_str = await self.blpop(moderation_request_id, timeout=timeout)
+        if response_str is None:
+            return None
+        return ModerationResponse.model_validate_json(response_str)

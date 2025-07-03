@@ -30,4 +30,6 @@ class ModerationRequestsConsumer(RedisConMixin):
     async def consume(self) -> ModerationRequest:
         """Consume moderation requests."""
         request_str = await self.blpop(self.__queue_key)
+        if request_str is None:
+            raise ValueError
         return ModerationRequest.model_validate_json(request_str)

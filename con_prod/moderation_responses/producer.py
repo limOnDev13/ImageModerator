@@ -27,4 +27,4 @@ class ModerationResponsesProducer(RedisProdMixin):
 
     async def produce(self, moderation_resp: ModerationResponse) -> None:
         """Produce moderation response."""
-        await self.rpush(str(moderation_resp.id), moderation_resp.model_dump())
+        await self.rpush(moderation_resp.id, moderation_resp.model_dump_json())

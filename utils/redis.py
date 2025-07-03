@@ -105,9 +105,15 @@ class RedisProdMixin(RedisMixin):
 class RedisConMixin(RedisMixin):
     """Redis subscriber mixin."""
 
-    async def blpop(self, key: str) -> str:
+    async def blpop(
+        self, key: str, timeout: Optional[float] = None
+    ) -> Optional[str]:
         """BLPOP value from list with key."""
         async with self.get_redis_conn() as redis_client:
-            _, value = await redis_client.blpop([key])
+            result = await redis_client.blpop([key], timeout=timeout)
+            if result is None:
+                return None
+            else:
+                _, value = result
             logger.debug("BLPOP from key %s value %s", key, str(value))
             return value
