@@ -8,6 +8,7 @@ from config.app import Config, get_config
 from config.log import get_log_config
 
 from .middlewares.config_middleware import ConfigMiddleware
+from .routes.healthcheck import router as healthcheck_router
 from .routes.moderation import router as moderation_router
 
 tags_metadata = [
@@ -31,6 +32,7 @@ def create_app() -> FastAPI:
 
     # register routers
     app_.include_router(moderation_router)
+    app_.include_router(healthcheck_router)
 
     # register middlewares
     app_.add_middleware(ConfigMiddleware, config)
