@@ -1,0 +1,60 @@
+services:
+
+  redis:
+    container_name: ImageModerator-redis
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    command: [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
+    restart: unless-stopped
+    volumes:
+      - ./data/redisdata:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    ulimits:
+      nofile:
+        soft: 200000
+        hard: 200000
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+          cpus: "1.0"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    networks:
+      - redis_network
+
+  moderator:
+    container_name: ImageModerator-moderator
+    build:
+      context: .
+      dockerfile: ./Dockerfile.moderator
+    env_file: ".env"
+    depends_on:
+      redis:
+        condition: service_healthy
+        restart: true
+    networks:
+      - redis_network
+
+  server:
+    container_name: ImageModerator-server
+    build:
+      context: .
+      dockerfile: ./Dockerfile.server
+    ports:
+      - "8000:8000"
+    env_file: ".env"
+    depends_on:
+      redis:
+        condition: service_healthy
+        restart: true
+    networks:
+      - redis_network
+
+networks:
+  redis_network:
+    driver: bridge

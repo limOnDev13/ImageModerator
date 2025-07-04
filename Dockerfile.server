@@ -1,0 +1,28 @@
+FROM python:3.13-slim as builder
+WORKDIR /install
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential && apt-get clean && rm -rf /var/lib/apt/lists/*
+COPY requirements.server.txt .
+RUN pip install --upgrade pip && \
+    pip wheel --no-deps --wheel-dir /wheels -r requirements.server.txt
+
+
+FROM python:3.13-slim
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+WORKDIR /app
+COPY --from=builder /wheels /wheels
+COPY requirements.server.txt .
+RUN pip install --no-deps --no-index --find-links=/wheels -r requirements.server.txt && \
+    rm -rf /wheels && \
+    rm -f requirements.server.txt
+
+COPY .env.example .
+COPY config config
+COPY schemas schemas
+COPY con_prod con_prod
+COPY utils utils
+COPY services services
+COPY server server
+
+CMD ["uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8000"]
+HEALTHCHECK CMD curl -f http://localhost:8000/health/ || exit 1
