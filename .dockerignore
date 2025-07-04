@@ -1,0 +1,9 @@
+.git
+__pycache__/
+*.pyc
+.env
+.vscode/
+node_modules/
+*.log
+*.json
+.*\.venv

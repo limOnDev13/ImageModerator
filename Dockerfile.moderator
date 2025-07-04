@@ -1,0 +1,27 @@
+FROM python:3.13-slim as builder
+WORKDIR /install
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential && apt-get clean && rm -rf /var/lib/apt/lists/*
+COPY requirements.moderator.txt .
+RUN pip install --upgrade pip && \
+    pip wheel --no-deps --wheel-dir /wheels -r requirements.moderator.txt
+
+FROM python:3.13-slim
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+WORKDIR /app
+COPY --from=builder /wheels /wheels
+COPY requirements.moderator.txt .
+RUN pip install --no-deps --no-index --find-links=/wheels -r requirements.moderator.txt && \
+    rm -rf /wheels && \
+    rm -f requirements.moderator.txt
+
+COPY .env.example .
+COPY config config
+COPY schemas schemas
+COPY con_prod con_prod
+COPY api api
+COPY utils utils
+COPY services services
+
+ENTRYPOINT ["python"]
+CMD ["-m", "services.moderation"]

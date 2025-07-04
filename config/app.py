@@ -11,7 +11,6 @@ class ClarifaiConfig(object):
     """Clarifai config."""
 
     access_token: str
-    model_url: str
 
 
 @dataclass
@@ -26,6 +25,7 @@ class Config(object):
     """App config."""
 
     debug: bool
+    moderation_timeout: float
     clarifai: ClarifaiConfig
     redis: RedisConfig
 
@@ -39,9 +39,9 @@ def get_config() -> Config:
 
     return Config(
         debug=os.getenv("DEBUG", "1") == "1",
+        moderation_timeout=float(os.getenv("MODERATION_TIMEOUT", 5.0)),
         clarifai=ClarifaiConfig(
             access_token=os.getenv("CLARIFAI_ACCESS_TOKEN", "clarifai PAT"),
-            model_url=os.getenv("CLARIFAI_MODEL_URL", "clarifai model url"),
         ),
         redis=RedisConfig(
             url=os.getenv("REDIS_URL", "redis://localhost:6379")
