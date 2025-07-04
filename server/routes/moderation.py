@@ -15,8 +15,6 @@ from schemas.moderation import ModerationRequest
 logger = getLogger("main.server.routes.moderation")
 router = APIRouter(tags=["moderation"])
 
-TIMEOUT: float = 60.0
-
 
 @router.post(
     "/moderate/",
@@ -83,7 +81,7 @@ async def moderate(request: Request, image: UploadFile = File(...)):
     start_time = time()
     moderation_response = await responses_consumer.consume(
         moderation_request.id,
-        timeout=TIMEOUT,
+        timeout=config.moderation_timeout,
     )
     logger.debug("Getting response time: %.1f", time() - start_time)
 
@@ -150,7 +148,7 @@ async def get_moderation_result(request: Request, moderation_request_id: str):
     )
     moderation_response = await responses_consumer.consume(
         moderation_request_id,
-        timeout=TIMEOUT,
+        timeout=config.moderation_timeout,
     )
 
     if moderation_response is None:
